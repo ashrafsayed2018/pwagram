@@ -1,7 +1,7 @@
 importScripts('./src/js/idb.js')
 importScripts('./src/js/utlity.js')
 
-let CACHE_STATIC = 'static-v8';
+let CACHE_STATIC = 'static-v13';
 let CACHE_DAYNAMIC = "daynamic-v1";
 let STATIC_FILES = [
     '/',
@@ -43,8 +43,8 @@ self.addEventListener('install', event => {
     event.waitUntil(
         caches.open(CACHE_STATIC)
               .then(cache => {
-                  // [service workers] precaching app chell
-                  console.log('[service workers] precaching app chell')
+                  // [service workers] pre caching app chell
+                  console.log('[service workers] pre caching app chell')
                   cache.addAll(STATIC_FILES)
               })
         )
@@ -258,3 +258,44 @@ self.addEventListener('fetch', event => {
 
 // )  
 // })
+
+self.addEventListener('sync', event => {
+    console.log('service worker background syncing ' , event)
+    if(event.tag === "sync-new-post") {
+        console.log('syncing new post')
+        event.waitUntil(
+            readAllData('sync-posts')
+            .then(data => {
+                for (var dt of data ) {
+                    fetch("https://us-central1-pwagram-9b3e9.cloudfunctions.net/storePostDat", {
+                        method : "POST",
+                         headers : {
+                          "Content-type" : "application/json",
+                          "Accept" : "application/json"
+                        },
+                        body : JSON.stringify({
+                          id : dt.id,
+                          title : dt.title,
+                          location : dt.location,
+                          image : "https://firebasestorage.googleapis.com/v0/b/pwagram-9b3e9.appspot.com/o/sf-boat.jpg?alt=media&token=e6ef80b9-fc2f-47f7-ab96-b9097e9419d9"
+                        })
+                      })
+                      .then(res => {
+                        console.log('sent data' , res)
+                           if(res.ok) {
+                               res.json()
+                               .then(resData => {
+                                deleteSingleData('sync-posts', resData.id) 
+                               })
+                           
+                           }
+                      })
+                      .catch(err => {
+                          console.log(`error while sending data ${err}`)
+                      })
+                }
+             
+            })
+        )
+    }
+})

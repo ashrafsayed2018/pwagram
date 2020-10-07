@@ -2,6 +2,9 @@ var shareImageButton = document.querySelector('#share-image-button');
 var createPostArea = document.querySelector('#create-post');
 var closeCreatePostModalButton = document.querySelector('#close-create-post-modal-btn');
 var sharedMomentsArea = document.querySelector('#shared-moments');
+var form = document.querySelector('form')
+var titleInput = document.querySelector('#title')
+var locationInput = document.querySelector('#location')
 
 
 function openCreatePostModal() {
@@ -92,7 +95,7 @@ function updateUi(data) {
   }
 }
 
-let url = 'https://pwagram-9b3e9.firebaseio.com/posts.json';
+let url = 'https://us-central1-pwagram-9b3e9.cloudfunctions.net/storePostDat';
 let networkdatareceived = false;
 
 fetch(url)
@@ -121,3 +124,64 @@ if('indexedDB' in window) {
        }
      })
 }
+
+// function to send data to the backend if the SyncManager not support in the browser
+
+function sendData() {
+  fetch(url, {
+    method : "POST",
+    headers : {
+      "Content-type" : "application/json",
+      "Accept" : "application/json"
+    },
+    body : JSON.stringify({
+      id : new Date().toLocaleString(),
+      title : titleInput.value,
+      location : locationInput.value,
+      image : "https://firebasestorage.googleapis.com/v0/b/pwagram-9b3e9.appspot.com/o/sf-boat.jpg?alt=media&token=e6ef80b9-fc2f-47f7-ab96-b9097e9419d9"
+    })
+  })
+  .then(res => {
+    console.log('sent data' , res)
+    updateUi(res)
+  })
+}
+form.addEventListener('submit', event=> {
+  event.preventDefault();
+
+  if(titleInput.value.trim() === "" || locationInput.value.trim() === "") {
+    alert('please insert a valid data ')
+    return
+  }
+
+  closeCreatePostModal()
+
+  if('serviceWorker' in navigator && "SyncManager" in window) {
+    navigator.serviceWorker.ready
+    .then(sw => {
+
+      var post = {
+        id : new Date().toDateString(),
+        title : titleInput.value,
+        location : locationInput.value
+      }
+
+      writeData('sync-posts', post)
+      .then(() => {
+        return sw.sync.register('sync-new-post');
+      })
+      .then(() => {
+        var snackbarContainer = document.querySelector('#confirmation-toast');
+        var data = {message : 'your post save till the internet connected syning'}
+        snackbarContainer.MaterialSnackbar.showSnackbar(data)
+      })
+      .catch(err => {
+             console.log(err)
+      })
+      
+    })
+  } else {
+      sendData()
+  }
+ 
+})

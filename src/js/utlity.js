@@ -5,9 +5,11 @@ var dbPromise = idb.open('posts-store',2,function (db) {
     // check if the object srore names is not contains the post object store
 
     if(!db.objectStoreNames.contains('posts')) {        
-        
-
         db.createObjectStore('posts', {keyPath : "id"})
+    }
+    // object  store for the sync post which made offline 
+    if(!db.objectStoreNames.contains('sync-posts')) {        
+        db.createObjectStore('sync-posts', {keyPath : "id"})
     }
 })
 
@@ -52,6 +54,6 @@ function deleteSingleData(st, id) {
          return tx.complete;
      })
      .then(() => {
-         console.log(`iemm with id ${id} was deleted successfuly `)
+         console.log(`item with id ${id} was deleted successfuly `)
      })
 }
